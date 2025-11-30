@@ -30,7 +30,7 @@ Resources:
         MailingList:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /groups/
+            Path: /groups
             Method: post
   JoinGroupFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -45,13 +45,37 @@ Resources:
         Variables:
           TABLE_NAME: !Ref GroupSubscribersTable
       Policies:
-        - DynamoDBWritePolicy:
+        - DynamoDBCrudPolicy:
             TableName: !Ref GroupSubscribersTable
       Events:
         MailingList:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /groups/{group-id}
+            Method: post
+  SendPostFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: send_post/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      FunctionName: prod-mailing-list-send-post
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MESSAGES_BUCKET: !Ref Messages
+          TABLE_NAME: !Ref GroupSubscribersTable
+      Policies:
+         - S3WritePolicy:
+              BucketName: !Ref Messages
+         - DynamoDBReadPolicy:
+             TableName: !Ref GroupSubscribersTable
+      Events:
+        MailingList:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /groups/{group-id}/post
             Method: post
   ViewGroupsFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -74,6 +98,7 @@ Resources:
           Properties:
             Path: /groups
             Method: get
+  
   GroupSubscribersTable:
     Type: AWS::DynamoDB::Table
     Properties: 
@@ -91,7 +116,46 @@ Resources:
       BillingMode: PROVISIONED
       ProvisionedThroughput:
         ReadCapacityUnits: 5
-        WriteCapacityUnits: 5 
+        WriteCapacityUnits: 5
+  SendEmailFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: send_email/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SendMessagesQueue.Arn
+            BatchSize: 5
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt SendMessagesQueue.Arn
+      Queues:
+        - !Ref SendMessagesQueue
+  Messages:
+    Type: AWS::S3::Bucket    
+    Properties:
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Queue: !GetAtt SendMessagesQueue.Arn
+  SendMessagesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DLQ.Arn
+        maxReceiveCount: 5
+  DLQ:
+    Type: AWS::SQS::Queue
 Outputs:
   CreateGroupApi:
     Description: "API Gateway endpoint URL for Prod stage for CreateGroup function"
