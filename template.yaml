@@ -123,6 +123,7 @@ Resources:
       CodeUri: send_email/
       Handler: app.lambda_handler
       Runtime: python3.9
+      Timeout: 60
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref Messages
