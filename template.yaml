@@ -128,8 +128,12 @@ Resources:
             BucketName: !Ref Messages
         - DynamoDBReadPolicy:
             TableName: !Ref GroupSubscribersTable
-        - SESCrudPolicy:
-            IdentityName: pintolearning@gmail.com
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: '*'
       Environment:
         Variables:
           TABLE_NAME: !Ref GroupSubscribersTable
