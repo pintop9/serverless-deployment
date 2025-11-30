@@ -127,12 +127,12 @@ Resources:
         - S3ReadPolicy:
             BucketName: !Ref Messages
         - DynamoDBReadPolicy:
-            TableName: !Ref GroupsSubscribersTable
+            TableName: !Ref GroupSubscribersTable
         - SESCrudPolicy:
             IdentityName: pintolearning@gmail.com
       Environment:
         Variables:
-          TABLE_NAME: !Ref GroupsSubscribersTable
+          TABLE_NAME: !Ref GroupSubscribersTable
           VERIFIED_EMAIL: pintolearning@gmail.com
       Events:
         SQSEvent:
