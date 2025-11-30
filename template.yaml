@@ -162,6 +162,7 @@ Resources:
   SendMessagesQueue:
     Type: AWS::SQS::Queue
     Properties:
+      VisibilityTimeout: 360
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt DLQ.Arn
         maxReceiveCount: 5
