@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  mailing-list
+
+  Sample SAM Template for mailing-list
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  CreateGroupFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: create_group/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      FunctionName: prod-mailing-list-creategroup
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref GroupSubscribersTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GroupSubscribersTable      
+      Events:
+        MailingList:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /groups/
+            Method: post
+  JoinGroupFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: join_group/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      FunctionName: prod-mailing-list-joingroup
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref GroupSubscribersTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref GroupSubscribersTable
+      Events:
+        MailingList:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /groups/{group-id}
+            Method: post
+  ViewGroupsFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: view_groups/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      FunctionName: prod-mailing-list-viewgroups
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref GroupSubscribersTable
+      Policies:
+         - DynamoDBReadPolicy:
+             TableName: !Ref GroupSubscribersTable
+      Events:
+        MailingList:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /groups
+            Method: get
+  GroupSubscribersTable:
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      TableName: groups-db      
+      AttributeDefinitions: 
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema: 
+        - AttributeName: PK
+          KeyType: HASH 
+        - AttributeName: SK
+          KeyType: RANGE 
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5 
+Outputs:
+  CreateGroupApi:
+    Description: "API Gateway endpoint URL for Prod stage for CreateGroup function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/groups/"
+  JoinGroupApi:
+    Description: "API Gateway endpoint URL for Prod stage for JoinGroupFunction function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/groups/"
+  ViewGroupsApi:
+    Description: "API Gateway endpoint URL for Prod stage for ViewGroupsFunction function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/groups/"
