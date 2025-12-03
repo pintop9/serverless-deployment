@@ -74,7 +74,7 @@
         const groupsTableBody = document.querySelector("#groups-table tbody");
         const inputContainer = document.querySelector("#input-container");
         const emailInput = document.querySelector("#email-input");
-
+        
         // Fetch groups from the backend API
         fetch(`${website}/groups`)
             .then(response => {
@@ -88,17 +88,18 @@
                 console.error('Error fetching groups:', error);
                 alert('Failed to load groups');
             });
-
+        
         // Function to add a group to the table
         const addGroupToTable = (group, index) => {
-            groupsTableBody.innerHTML += `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td><a href="#" class="group-link" data-id="${group.id}">${group.name}</a></td>
-                    <td>${group.description || 'No description'}</td>
-                </tr>`;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td><a href="#" class="group-link" data-id="${group.id}">${group.name}</a></td>
+                <td>${group.description || 'No description'}</td>
+            `;
+            groupsTableBody.appendChild(row);
         };
-
+        
         // Event listener for clicking on a group link
         document.addEventListener("click", (e) => {
             if (e.target.classList.contains("group-link")) {
@@ -109,23 +110,27 @@
                 emailInput.focus();
             }
         });
-
+        
         // Event listener for clicking the Add button
         document.querySelector("#add-button").addEventListener("click", () => {
             const email = emailInput.value.trim();
-
+        
             if (!selectedGroupId) {
                 alert("Please select a group first.");
                 return;
             }
-
+        
             if (!email || !emailInput.checkValidity()) {
                 alert("Please provide a valid email address.");
                 return;
             }
-
+        
+            // URL encode the group ID to handle special characters like #
+            const encodedGroupId = encodeURIComponent(selectedGroupId);
+            console.log('Sending to:', `${website}/groups/${encodedGroupId}`);
+        
             // Send request to join group
-            fetch(`${website}/groups/${selectedGroupId}`, {
+            fetch(`${website}/groups/${encodedGroupId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -150,14 +155,17 @@
                 alert(error.message || "Failed to join group. Please try again.");
             });
         });
-
-        // Event listener for Cancel button
-        document.querySelector("#cancel-button").addEventListener("click", () => {
-            inputContainer.style.display = "none";
-            emailInput.value = "";
-            selectedGroupId = null;
-        });
-
+        
+        // Event listener for Cancel button (if you add it)
+        const cancelButton = document.querySelector("#cancel-button");
+        if (cancelButton) {
+            cancelButton.addEventListener("click", () => {
+                inputContainer.style.display = "none";
+                emailInput.value = "";
+                selectedGroupId = null;
+            });
+        }
+        
         // Allow Enter key to submit
         emailInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
@@ -167,3 +175,4 @@
     </script>
 </body>
 </html>
+
