@@ -65,7 +65,9 @@ def lambda_handler(event, context):
             "Access-Control-Allow-Origin": "*", 
             "Access-Control-Allow-Methods": "POST",
         },
-        "body": json.dumps({"user": user_item, "group": group_item})
+        "body": json.dumps({
+        "message": f"User {username} added to group successfully",
+        "group_id": group_id
     }
     else:
         return {
