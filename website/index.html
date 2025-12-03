@@ -233,7 +233,7 @@
         e.preventDefault();
         username = document.getElementById("username").value;
         password = document.getElementById("password").value;
-        const apiUrl = `${website}/authorize`;
+        const apiUrl = `${website}/auth`;
 
         try {
           const response = await fetch(apiUrl, {
@@ -365,3 +365,4 @@
     </script>
   </body>
 </html>
+
