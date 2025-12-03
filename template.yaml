@@ -16,6 +16,25 @@ Globals:
       AllowOrigin: "'*'"
 
 Resources:
+  AuthorizeFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: authorize/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      Environment:
+        Variables:
+          USER: admin
+          SECRET_ID: !GetAtt AuthorizationSecret.Id
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref AuthorizationSecret
+      Events:
+        MailingList:
+          Type: Api
+          Properties:
+            Path: /authorize
+            Method: get
   CreateGroupFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -71,6 +90,8 @@ Resources:
         Variables:
           MESSAGES_BUCKET: !Ref Messages
           TABLE_NAME: !Ref GroupSubscribersTable
+          USER: admin
+          SECRET_ID: !GetAtt AuthorizationSecret.Id
       Policies:
          - S3WritePolicy:
               BucketName: !Ref Messages
@@ -228,6 +249,12 @@ Resources:
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
+  AuthorizationSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: UserSecret
+      GenerateSecretString:
+        ExcludeCharacters: ":'"
 Outputs:
   CreateGroupApi:
     Description: "API Gateway endpoint URL for Prod stage for CreateGroup function"
