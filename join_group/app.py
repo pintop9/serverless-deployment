@@ -59,13 +59,14 @@ def lambda_handler(event, context):
             }
         )
         return {
-            "statusCode": 200,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({
-                "message": f"User {username} joined group successfully",
-                "group_id": group_id
-            })
-        }
+        "statusCode": 200, 
+        "headers": {
+            "Access-Control-Allow-Headers" : "Content-Type",
+            "Access-Control-Allow-Origin": "*", 
+            "Access-Control-Allow-Methods": "POST",
+        },
+        "body": json.dumps({"user": user_item, "group": group_item})
+    }
     else:
         return {
             "statusCode": 400,
