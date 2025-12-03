@@ -10,6 +10,7 @@
             font-family: 'Roboto', sans-serif;
             color: #000;
             background-color: #fff;
+            padding: 20px;
         }
         table {
             width: 100%;
@@ -23,9 +24,17 @@
         a {
             color: #000;
             text-decoration: underline;
+            cursor: pointer;
         }
         #input-container {
             display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #000;
+        }
+        #input-container input {
+            margin-right: 10px;
+            padding: 5px;
         }
         footer {
             position: fixed;
@@ -36,91 +45,125 @@
             background-color: #f9f9f9; 
             padding: 10px 0; 
         }
-        .center-form {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        
-        .center-form label, .center-form input {
-            display: block; /* Display label and input as block elements */
-            text-align: left; /* Align text to the left */
-            width: 100%; /* Take the full width of the container */
-        }
-
     </style>
 </head>
 <body>
+    <h1>Mailing List Groups</h1>
     <table id="groups-table">
-        <tr>
-            <th>#</th>
-            <th>Group</th>
-            <th>Description</th>
-        </tr>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Group</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
     </table>
+    
     <div id="input-container">
-        <input type="email" id="email-input" placeholder="Enter your email">
+        <h3>Join Group</h3>
+        <input type="email" id="email-input" placeholder="Enter your email" required>
         <button id="add-button">Add</button>
+        <button id="cancel-button">Cancel</button>
     </div>
+    
     <script>
         let selectedGroupId = null;
-        const website = "https://fg2wcgo9t4.execute-api.us-east-1.amazonaws.com";
-        const groupsTable = document.querySelector("#groups-table");
+        const website = "https://fg2wcgo9t4.execute-api.us-east-1.amazonaws.com/Prod";
+        const groupsTableBody = document.querySelector("#groups-table tbody");
         const inputContainer = document.querySelector("#input-container");
+        const emailInput = document.querySelector("#email-input");
 
         // Fetch groups from the backend API
-        fetch(`${website}/Prod/groups`)
-            .then(response => response.json())
-            .then(data => data.forEach((group, key) => addGroupToTable(group, key)));
+        fetch(`${website}/groups`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to fetch groups');
+                return response.json();
+            })
+            .then(data => {
+                data.forEach((group, index) => addGroupToTable(group, index));
+            })
+            .catch(error => {
+                console.error('Error fetching groups:', error);
+                alert('Failed to load groups');
+            });
 
         // Function to add a group to the table
-        const addGroupToTable = (group, key) =>
-            groupsTable.innerHTML += `
+        const addGroupToTable = (group, index) => {
+            groupsTableBody.innerHTML += `
                 <tr>
-                <td>${key + 1}</td>
-                <td><a href="#" class="group-link" data-id="${group.id}">${group.name}</a></td>
-                <td>${group.description}</td>
+                    <td>${index + 1}</td>
+                    <td><a href="#" class="group-link" data-id="${group.id}">${group.name}</a></td>
+                    <td>${group.description || 'No description'}</td>
                 </tr>`;
+        };
 
         // Event listener for clicking on a group link
         document.addEventListener("click", (e) => {
-        if (e.target.classList.contains("group-link")) {
-            e.preventDefault();
-            selectedGroupId = e.target.dataset.id;
-            inputContainer.style.display = "block";
-        }
+            if (e.target.classList.contains("group-link")) {
+                e.preventDefault();
+                selectedGroupId = e.target.dataset.id;
+                console.log('Selected group:', selectedGroupId);
+                inputContainer.style.display = "block";
+                emailInput.focus();
+            }
         });
 
         // Event listener for clicking the Add button
         document.querySelector("#add-button").addEventListener("click", () => {
-            const emailInput = document.querySelector("#email-input");
-            const email = emailInput.value;
+            const email = emailInput.value.trim();
 
-            if (selectedGroupId && email && emailInput.checkValidity()) {
-                fetch(`${website}/Prod/groups/${selectedGroupId}`, {
+            if (!selectedGroupId) {
+                alert("Please select a group first.");
+                return;
+            }
+
+            if (!email || !emailInput.checkValidity()) {
+                alert("Please provide a valid email address.");
+                return;
+            }
+
+            // Send request to join group
+            fetch(`${website}/groups/${selectedGroupId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
-                })
-                .then((response) => {
-                    if (response.ok) {
-                    alert("Email added successfully!");
-                    inputContainer.style.display = "none";
-                    emailInput.value = "";
-                    } else {
-                    throw new Error("Network response was not ok");
-                    }
-                })
-                .catch((error) => console.error(error));
-            } else if (!emailInput.checkValidity()) {
-                alert("Please provide a valid email address.");
-            } else {
-                alert("Please select a group and provide an email.");
-            }
+            })
+            .then((response) => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    return response.json().then(err => {
+                        throw new Error(err.message || 'Failed to join group');
+                    });
+                }
+            })
+            .then((data) => {
+                alert(data.message || "Successfully joined the group!");
+                inputContainer.style.display = "none";
+                emailInput.value = "";
+                selectedGroupId = null;
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert(error.message || "Failed to join group. Please try again.");
+            });
         });
 
-        
+        // Event listener for Cancel button
+        document.querySelector("#cancel-button").addEventListener("click", () => {
+            inputContainer.style.display = "none";
+            emailInput.value = "";
+            selectedGroupId = null;
+        });
+
+        // Allow Enter key to submit
+        emailInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                document.querySelector("#add-button").click();
+            }
+        });
     </script>
 </body>
 </html>
