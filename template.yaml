@@ -19,7 +19,7 @@ Resources:
   AuthorizeFunction:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: authorize/
+      CodeUri: auth/
       Handler: app.lambda_handler
       Runtime: python3.9
       Environment:
@@ -33,7 +33,7 @@ Resources:
         MailingList:
           Type: Api
           Properties:
-            Path: /authorize
+            Path: /auth
             Method: get
   CreateGroupFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
