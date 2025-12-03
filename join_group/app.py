@@ -29,8 +29,8 @@ def lambda_handler(event, context):
     
     try:
         body = json.loads(raw_body)
-        email = body.get("email", "").strip()
-        if not email:
+        raw_email = body.get("email", "").strip()
+        if not raw_email:
             raise ValueError
     except:
         return {
@@ -39,7 +39,9 @@ def lambda_handler(event, context):
             "body": json.dumps({"error": "Valid email required"})
         }
     
-    username = email.split('#')[1].split('@')[0]
+    # Extract username and create standardized email
+    username = raw_email.split('@')[0]  # guy
+    email = f"USER#{username}@m.io"  # USER#guy@m.io
     
     response = table.query(
         KeyConditionExpression=Key('PK').eq(group_id) & Key('SK').begins_with(f"USER#{username}")
@@ -48,31 +50,35 @@ def lambda_handler(event, context):
     if response['Count'] == 0:
         table.put_item(
             Item={
-                "PK": f"{group_id}",
-                "SK": f"{email}",
+                "PK": group_id,
+                "SK": email,  # USER#guy@m.io
             }
         )
         table.put_item(
             Item={
-                "PK": f"USER#{username}@mail.com",
-                "SK": f"{group_id}",
+                "PK": f"USER#{username}@mail.com",  # USER#guy@mail.com
+                "SK": group_id,
             }
         )
         return {
-        "statusCode": 200, 
-        "headers": {
-            "Access-Control-Allow-Headers" : "Content-Type",
-            "Access-Control-Allow-Origin": "*", 
-            "Access-Control-Allow-Methods": "POST",
-        },
-        "body": json.dumps({
-        "message": f"User {username} added to group successfully",
-        "group_id": group_id
-    }
+            "statusCode": 200, 
+            "headers": {
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Allow-Origin": "*", 
+                "Access-Control-Allow-Methods": "POST",
+            },
+            "body": json.dumps({
+                "message": f"User {username} added successfully",
+                "group_id": group_id
+            })
+        }
     else:
         return {
             "statusCode": 400,
-            "headers": {"Content-Type": "application/json"},
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
             "body": json.dumps({
                 "message": f"User {username} is already in this group",
                 "group_id": group_id
